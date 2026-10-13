@@ -125,7 +125,7 @@ export default function Landing() {
             <div key={p[1]}><div className="row" style={{ gap: 8, color: '#fff', fontWeight: 600, marginBottom: 4 }}><Icon n={p[0]} s={17} c="#FF8A55" />{p[1]}</div><p style={{ color: '#BDB8B2', fontSize: 13.5 }}>{p[2]}</p></div>)}</div></div></Reveal>
       </div>
 
-      <Reveal className="lp-stats">{[['34', '+', 'skills recognised per ad'], ['3', 's', 'typical analysis time'], ['100', '%', 'free for students']].map(([n, u, l]) =>
+      <Reveal className="lp-stats">{[['48', '', 'skills recognised in CVs and job ads'], ['1500', '', 'AI job postings in our market data'], ['100', '%', 'free for students']].map(([n, u, l]) =>
         <div key={l}><b><Num v={n} /></b><em>{u}</em><span>{l}</span></div>)}</Reveal>
 
       <Reveal className="lp-cta"><div className="rays" aria-hidden="true" /><h2>Know your match before you apply.</h2><p>Free for students. Your first report takes about a minute.</p>

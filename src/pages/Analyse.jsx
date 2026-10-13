@@ -7,7 +7,9 @@ import { navigate } from '../lib/router';
 
 // Mirrors the backend alias list closely enough for a live preview of detected skills.
 const PREVIEW_SKILLS = ['python', 'fastapi', 'django', 'sql', 'react', 'javascript', 'typescript', 'docker', 'kubernetes', 'git', 'unit testing',
-  'java', 'c#', 'aws', 'azure', 'linux', 'networking', 'excel', 'power bi', 'figma', 'node.js', 'rest api'];
+  'java', 'c#', 'aws', 'azure', 'linux', 'networking', 'excel', 'power bi', 'figma', 'node.js', 'rest api', 'pytorch', 'tensorflow',
+  'scikit-learn', 'nlp', 'computer vision', 'deep learning', 'machine learning', 'llms', 'langchain', 'rag', 'mlops', 'spark', 'airflow',
+  'statistics', 'cloud', 'c++', 'agile'];
 const detect = (t) => PREVIEW_SKILLS.filter((k) => new RegExp('(^|[^a-z0-9])' + k.replace(/[.+#]/g, (m) => '\\' + m) + '([^a-z0-9]|$)', 'i').test(t));
 const SAMPLE_AD = 'We are looking for a junior developer to join our platform team. You will build APIs in Python and FastAPI, work with SQL databases, ship features in React and package services with Docker. Experience with Git and unit testing is a plus.';
 const CHECKS = ['Extracting text', 'Matching skills', 'Scoring experience', 'Building your report'];
