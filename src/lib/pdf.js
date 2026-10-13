@@ -98,9 +98,9 @@ export function buildReportPdf({ report: r, user, cvName, items = [], history = 
   items.slice(0, 5).forEach((it, i) => {
     const y = 316 + i * 46;
     d.setFillColor(250, 248, 246); d.roundedRect(M, y, W - 2 * M, 38, 8, 8, 'F');
-    d.setTextColor(...INK); d.setFontSize(10.5); d.setFont('helvetica', 'bold'); d.text(it.title, M + 14, y + 16);
+    d.setTextColor(...INK); d.setFontSize(10.5); d.setFont('helvetica', 'bold'); d.text(d.splitTextToSize(it.title, 380)[0], M + 14, y + 16);
     d.setFont('helvetica', 'normal'); d.setFontSize(9); d.setTextColor(...MUTED);
-    d.text(`${it.provider} · ${it.minutes} min · ${it.level}${it.state === 'done' ? '  ·  done' : ''}`, M + 14, y + 30);
+    d.text([it.platform, it.provider, it.duration || (it.minutes ? it.minutes + ' min' : ''), it.level, it.rating ? it.rating + ' stars' : '', it.state === 'done' ? 'done' : ''].filter(Boolean).join('  ·  '), M + 14, y + 30);
     d.setTextColor(217, 67, 58); d.text(it.skill, W - M - 14, y + 23, { align: 'right' });
   });
   if (!items.length) { d.setFontSize(10); d.setTextColor(...MUTED); d.setFont('helvetica', 'normal'); d.text('No missing skills. Nothing to learn for this role.', M, 330); }

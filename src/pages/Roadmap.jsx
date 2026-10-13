@@ -5,7 +5,8 @@ import { ErrorBox, Loading, Popover, Ring, toastError, useApi, useToast } from '
 import { put } from '../lib/api';
 import { navigate } from '../lib/router';
 
-const COLORS = ['#2496ED', '#1F9D5A', '#7B5BD6', '#D98A12', '#C2410C', '#0E7490'];
+const PLATFORM = { Coursera: ['C', '#2A73CC'], edX: ['eX', '#B7193F'], Curated: [null, '#FF5B1F'], Docs: [null, '#1F9D5A'], Search: [null, '#86807A'] };
+const meta = (it) => [it.provider, it.duration || (it.minutes ? it.minutes + ' min' : ''), it.level].filter(Boolean).join(' · ');
 
 export default function Roadmap({ param }) {
   const toast = useToast();
@@ -23,7 +24,7 @@ export default function Roadmap({ param }) {
   const done = items.filter((i) => i.state === 'done').length;
   const groups = [...new Set(items.map((i) => i.skill))];
   const gain = items.length ? Math.min(98, r.score + 13) : r.score;
-  const left = items.filter((i) => i.state !== 'done').reduce((s, i) => s + (i.minutes || 45), 0);
+  const left = items.length - done;
 
   const setState = async (it, state) => {
     road.setData((d) => ({ ...d, items: d.items.map((x) => (x.key === it.key ? { ...x, state } : x)) }));
@@ -47,7 +48,7 @@ export default function Roadmap({ param }) {
       <Ring pct={items.length ? done / items.length : 1} size={116} stroke={12} big={`${done}/${items.length}`} small="done" track="var(--card)" fs={26} />
       <div style={{ flex: 1, minWidth: 220 }}><div className="sub">From: {r.job_title} · {r.score}%</div>
         <div style={{ fontSize: 21, fontWeight: 700, margin: '2px 0 10px' }}>{items.length ? `Close ${groups.length} skill gap${groups.length > 1 ? 's' : ''} to reach about ${gain}%` : 'No gaps in this report'}</div>
-        <div className="row" style={{ gap: 24, flexWrap: 'wrap' }}>{[['Clock', `${left} min left`], ['Layers', `${items.length} resources`], ['TrendingUp', `+${gain - r.score}% potential`]].map((m) =>
+        <div className="row" style={{ gap: 24, flexWrap: 'wrap' }}>{[['Clock', `${left} to go`], ['Layers', `${groups.length} skill${groups.length === 1 ? '' : 's'}`], ['TrendingUp', `+${gain - r.score}% potential`]].map((m) =>
           <span key={m[1]} className="row" style={{ gap: 8, fontSize: 13, fontWeight: 500 }}><Icon n={m[0]} s={17} c="#E04A10" />{m[1]}</span>)}</div></div>
       <img src={stairs} alt="" className="hide-m" style={{ width: 130, borderRadius: 16 }} /></div>
     <div className="grid g2">
@@ -61,9 +62,14 @@ export default function Roadmap({ param }) {
           <p className="sub" style={{ fontSize: 12.5, marginBottom: 12 }}>{its[0].reason}</p>
           <div className="list">{its.map((it, i) => (
             <div key={it.key} className="it">
-              <div className="logo" style={{ background: COLORS[(gi + i) % COLORS.length] }}><Icon n={it.curated ? 'Star' : 'Layers'} s={19} c="#fff" /></div>
+              <div className="logo" style={{ background: (PLATFORM[it.platform] || PLATFORM.Docs)[1], fontSize: 13 }}>
+                {(PLATFORM[it.platform] || [])[0] || <Icon n={it.curated ? 'Star' : 'Layers'} s={19} c="#fff" />}</div>
               <div className="t"><b style={it.state === 'done' ? { color: 'var(--muted)', textDecoration: 'line-through' } : undefined}>{it.title}</b>
-                <span>{it.provider} · {it.minutes} min · {it.level}{it.state === 'progress' && <b style={{ color: 'var(--o)', display: 'inline' }}> · In progress</b>}</span></div>
+                <span>{meta(it)}{it.rating ? <> · <b style={{ color: 'var(--amber)', display: 'inline' }}>★ {it.rating}</b></> : null}
+                  {it.state === 'progress' && <b style={{ color: 'var(--o)', display: 'inline' }}> · In progress</b>}</span>
+                <span className="row" style={{ gap: 6, marginTop: 4 }}>
+                  <span className={'chip ' + (it.curated ? 'c-o' : 'c-b')} style={{ padding: '1px 8px', fontSize: 10.5 }}>{it.curated ? 'Curated' : it.platform}</span>
+                  {it.link_type === 'search' && <span className="chip c-m" style={{ padding: '1px 8px', fontSize: 10.5 }}>Opens a search</span>}</span></div>
               {it.url && <a className="iconmini" href={it.url} target="_blank" rel="noreferrer" aria-label="Open resource"><Icon n="ExternalLink" s={14} /></a>}
               {it.state === 'done' ? <button className="chip c-g" onClick={() => setState(it, 'todo')} title="Undo"><Icon n="Check" s={12} w={3} />Done</button>
                 : it.state === 'progress' ? <button className="btn sm" onClick={() => setState(it, 'done')}>Mark done</button>
@@ -71,5 +77,6 @@ export default function Roadmap({ param }) {
             </div>))}</div></div>);
       }) : <div className="card"><h2>Nothing to learn for this report</h2><p className="sub">Every required skill was found. Pick another report above.</p></div>}
     </div>
+    <p className="sub" style={{ fontSize: 12, marginTop: 14 }}>Courses come from the Coursera and edX course datasets (Kaggle). Resources marked Curated were added by an administrator.</p>
   </>);
 }
