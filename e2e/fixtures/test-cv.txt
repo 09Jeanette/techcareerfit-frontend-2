@@ -1,0 +1,17 @@
+Test Candidate
+Junior Software Developer (synthetic CV for automated testing - not a real person)
+
+PROFILE
+Junior developer with experience building REST APIs and web front ends.
+
+SKILLS
+Python, FastAPI, SQL, PostgreSQL, React, JavaScript, Git, unit testing
+
+EXPERIENCE
+Software Development Intern, Example Labs (Jan 2025 - Dec 2025)
+- Built REST APIs in Python and FastAPI backed by a PostgreSQL database.
+- Developed React components and wrote unit tests for new features.
+- Used Git and pull requests for code review.
+
+EDUCATION
+Diploma in Information Technology, 2024
