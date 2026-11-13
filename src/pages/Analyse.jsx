@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../components/Icon';
 import { ErrorBox, Field, Loading, Modal, Ring, toastError, useApi, useToast } from '../components/ui';
-import { del, download, post, upload } from '../lib/api';
-import { fmtDate } from '../lib/format';
+import { api, del, post, saveResponse, upload } from '../lib/api';
+import { downloadBlob, fmtDate } from '../lib/format';
 import { navigate } from '../lib/router';
 
 // Mirrors the backend alias list closely enough for a live preview of detected skills.
@@ -51,8 +51,15 @@ export default function Analyse() {
     catch (ex) { toastError(toast, ex); }
   };
   const downloadCv = async (c) => {
-    try { await download(`/cvs/${c.id}/download`, c.filename || 'cv'); }
-    catch (ex) { toastError(toast, ex); }
+    try {
+      // GET /cvs/{id} returns either the original file or the CV record as JSON.
+      const res = await api(`/cvs/${c.id}`, { raw: true });
+      if (!(res.headers.get('Content-Type') || '').includes('application/json')) { await saveResponse(res, c.filename || 'cv'); return; }
+      const data = await res.json();
+      const text = data.extracted_text ?? data.text;
+      if (!text) { toast('This CV has no saved text to download', 'AlertTriangle', '#FF9A72'); return; }
+      downloadBlob((c.filename || 'cv').replace(/\.[^.]+$/, '') + '.txt', text, 'text/plain;charset=utf-8');
+    } catch (ex) { toastError(toast, ex); }
   };
   const removeCv = async (id) => {
     try { await del('/cvs/' + id); cvs.setData((d) => d.filter((c) => c.id !== id)); if (cvId === id) setCvId(null); toast('CV removed', 'Trash2', '#FF9A72'); }

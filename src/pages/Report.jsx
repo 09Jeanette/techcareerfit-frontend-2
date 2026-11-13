@@ -37,15 +37,15 @@ export default function Report({ param }) {
       toast('PDF report downloaded');
     } catch (e) { toastError(toast, e); } finally { setBusy(false); }
   };
-  const removeReports = async (ids) => {
+  const removeOne = async () => {
     setConfirm(null);
-    const results = await Promise.allSettled(ids.map((id) => del('/reports/' + id)));
-    const gone = ids.filter((_, i) => results[i].status === 'fulfilled');
-    reps.setData((d) => d.filter((x) => !gone.includes(x.id)));
-    if (gone.includes(r.id)) navigate('report');
-    const failed = results.find((x) => x.status === 'rejected');
-    if (failed) toastError(toast, failed.reason);
-    else toast(ids.length > 1 ? 'Report history cleared' : 'Report deleted', 'Trash2', '#FF9A72');
+    try { await del('/reports/' + r.id); reps.setData((d) => d.filter((x) => x.id !== r.id)); navigate('report'); toast('Report deleted', 'Trash2', '#FF9A72'); }
+    catch (ex) { toastError(toast, ex); }
+  };
+  const clearAll = async () => {
+    setConfirm(null);
+    try { await del('/reports'); reps.setData([]); navigate('report'); toast('Report history cleared', 'Trash2', '#FF9A72'); }
+    catch (ex) { toastError(toast, ex); }
   };
   const toApply = () => { sessionStorage.setItem('tcf_prefill', JSON.stringify({ job_title: r.job_title, cv_id: r.cv_id, report_id: r.id })); navigate('apply'); };
 
@@ -86,9 +86,9 @@ export default function Report({ param }) {
         <details key={e[0] + open} className="ev" open={open}><summary><b>{e[0]}</b><Icon n="ChevronDown" s={16} /></summary>
           <p className="sub" style={{ fontSize: 12.5, margin: '6px 0 10px' }}>{e[1]}</p><span className={'chip ' + e[3]}>Evidence: {e[2]}</span>
           <p style={{ fontSize: 12.5, marginTop: 10, color: 'var(--ink2)' }}>{e[4]}</p></details>))}</div></div>
-    <ConfirmModal open={confirm === 'one'} onClose={() => setConfirm(null)} onConfirm={() => removeReports([r.id])} title="Delete this report?"
+    <ConfirmModal open={confirm === 'one'} onClose={() => setConfirm(null)} onConfirm={removeOne} title="Delete this report?"
       body={`The ${r.job_title} report and its score will be removed permanently.`} confirmText="Delete report" />
-    <ConfirmModal open={confirm === 'all'} onClose={() => setConfirm(null)} onConfirm={() => removeReports(list.map((x) => x.id))} title="Clear your report history?"
+    <ConfirmModal open={confirm === 'all'} onClose={() => setConfirm(null)} onConfirm={clearAll} title="Clear your report history?"
       body={`All ${list.length} reports will be removed permanently.`} typeToConfirm="DELETE" confirmText="Clear history" />
   </>);
 }

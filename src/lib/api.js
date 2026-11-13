@@ -50,7 +50,11 @@ export const upload = (p, file) => { const f = new FormData(); f.append('file', 
 
 // Fetch a file from the API and hand it to the browser as a download.
 export async function download(p, fallbackName = 'download') {
-  const res = await api(p, { raw: true });
+  return saveResponse(await api(p, { raw: true }), fallbackName);
+}
+
+// Save a fetch Response as a file, using the server's file name when it sends one.
+export async function saveResponse(res, fallbackName = 'download') {
   const cd = res.headers.get('Content-Disposition') || '';
   const m = cd.match(/filename\*=UTF-8''([^;]+)/i) || cd.match(/filename="?([^";]+)"?/i);
   const name = m ? decodeURIComponent(m[1]) : fallbackName;
