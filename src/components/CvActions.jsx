@@ -1,28 +1,11 @@
-// Download and delete actions for a saved CV, shared by My CV (Analyse) and Profile.
+// Delete action for a saved CV, shared by My CV (Analyse) and Profile.
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
 import { Modal, toastError, useToast } from './ui';
-import { api, del, get, saveResponse } from '../lib/api';
-import { downloadBlob } from '../lib/format';
-
-// GET /cvs/{id} returns either the original file or the CV record as JSON (then its text is saved as .txt).
-export async function downloadCv(c) {
-  const res = await api(`/cvs/${c.id}`, { raw: true });
-  if (!(res.headers.get('Content-Type') || '').includes('application/json')) return saveResponse(res, c.filename || 'cv');
-  const data = await res.json();
-  const text = data.extracted_text ?? data.text;
-  if (!text) throw new Error('This CV has no saved text to download.');
-  downloadBlob((c.filename || 'cv').replace(/\.[^.]+$/, '') + '.txt', text, 'text/plain;charset=utf-8');
-}
+import { del, get } from '../lib/api';
 
 export function CvButtons({ cv, onDelete }) {
-  const toast = useToast();
-  const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
-  const download = async () => { try { await downloadCv(cv); } catch (ex) { toastError(toast, ex); } };
-  return (<>
-    <button className="iconmini" onClick={stop(download)} aria-label="Download CV" title="Download CV"><Icon n="Download" s={14} /></button>
-    <button className="iconmini" onClick={stop(() => onDelete(cv))} aria-label="Remove CV" title="Remove CV"><Icon n="Trash2" s={14} /></button>
-  </>);
+  return <button className="iconmini" onClick={(e) => { e.stopPropagation(); onDelete(cv); }} aria-label="Remove CV" title="Remove CV"><Icon n="Trash2" s={14} /></button>;
 }
 
 // Deleting a CV removes the document itself. Reports scored with it keep their score, skills and evidence
