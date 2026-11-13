@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../auth';
 import Icon from '../components/Icon';
-import { ErrorBox, Loading, Ring, toastError, useApi, useToast } from '../components/ui';
-import { get } from '../lib/api';
+import { ConfirmModal, ErrorBox, Loading, Ring, toastError, useApi, useToast } from '../components/ui';
+import { del, get } from '../lib/api';
 import { downloadBlob, fmtDate, matchLabel } from '../lib/format';
 import { buildReportPdf } from '../lib/pdf';
 import { navigate } from '../lib/router';
@@ -14,6 +14,7 @@ export default function Report({ param }) {
   const cvs = useApi('/cvs');
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState(null); // 'one' | 'all' | null
   if (reps.loading) return <Loading />;
   if (reps.error) return <ErrorBox error={reps.error} retry={reps.reload} />;
   const list = reps.data;
@@ -36,6 +37,16 @@ export default function Report({ param }) {
       toast('PDF report downloaded');
     } catch (e) { toastError(toast, e); } finally { setBusy(false); }
   };
+  const removeReports = async (ids) => {
+    setConfirm(null);
+    const results = await Promise.allSettled(ids.map((id) => del('/reports/' + id)));
+    const gone = ids.filter((_, i) => results[i].status === 'fulfilled');
+    reps.setData((d) => d.filter((x) => !gone.includes(x.id)));
+    if (gone.includes(r.id)) navigate('report');
+    const failed = results.find((x) => x.status === 'rejected');
+    if (failed) toastError(toast, failed.reason);
+    else toast(ids.length > 1 ? 'Report history cleared' : 'Report deleted', 'Trash2', '#FF9A72');
+  };
   const toApply = () => { sessionStorage.setItem('tcf_prefill', JSON.stringify({ job_title: r.job_title, cv_id: r.cv_id, report_id: r.id })); navigate('apply'); };
 
   const evidence = [
@@ -47,9 +58,11 @@ export default function Report({ param }) {
     <div className="head"><div><div className="sub">ATS report · {fmtDate(r.created_at)} · {cvName}</div><h1>{r.job_title}</h1></div>
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <button className="btn ghost" onClick={pdf} disabled={busy}><Icon n={busy ? 'RefreshCw' : 'Download'} s={16} />{busy ? 'Preparing PDF…' : 'Download PDF'}</button>
+        <button className="btn ghost" onClick={() => setConfirm('one')}><Icon n="Trash2" s={16} />Delete report</button>
         <button className="btn" onClick={toApply}><Icon n="Plus" s={16} />Add to applications</button></div></div>
     <div className="row" style={{ gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
-      {list.slice().reverse().map((x) => <button key={x.id} className={'rtab' + (x.id === r.id ? ' on' : '')} onClick={() => navigate('report/' + x.id)}><b>{x.score}%</b>{x.job_title}</button>)}</div>
+      {list.slice().reverse().map((x) => <button key={x.id} className={'rtab' + (x.id === r.id ? ' on' : '')} onClick={() => navigate('report/' + x.id)}><b>{x.score}%</b>{x.job_title}</button>)}
+      {list.length > 1 && <button className="rtab" onClick={() => setConfirm('all')} style={{ color: 'var(--red)' }}><Icon n="Trash2" s={14} />Clear history</button>}</div>
     <div className="grid g12" style={{ marginBottom: 18 }}>
       <div className="card" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
         <Ring pct={r.score / 100} size={190} stroke={18} big={r.score + '%'} small={label} fs={46} ss={14} sc={color} />
@@ -73,5 +86,9 @@ export default function Report({ param }) {
         <details key={e[0] + open} className="ev" open={open}><summary><b>{e[0]}</b><Icon n="ChevronDown" s={16} /></summary>
           <p className="sub" style={{ fontSize: 12.5, margin: '6px 0 10px' }}>{e[1]}</p><span className={'chip ' + e[3]}>Evidence: {e[2]}</span>
           <p style={{ fontSize: 12.5, marginTop: 10, color: 'var(--ink2)' }}>{e[4]}</p></details>))}</div></div>
+    <ConfirmModal open={confirm === 'one'} onClose={() => setConfirm(null)} onConfirm={() => removeReports([r.id])} title="Delete this report?"
+      body={`The ${r.job_title} report and its score will be removed permanently.`} confirmText="Delete report" />
+    <ConfirmModal open={confirm === 'all'} onClose={() => setConfirm(null)} onConfirm={() => removeReports(list.map((x) => x.id))} title="Clear your report history?"
+      body={`All ${list.length} reports will be removed permanently.`} typeToConfirm="DELETE" confirmText="Clear history" />
   </>);
 }

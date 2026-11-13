@@ -7,6 +7,7 @@ import { navigate } from '../lib/router';
 import { AppCard } from './Applications';
 
 const SOURCES = ['LinkedIn', 'PNet', 'Careers24', 'Company site', 'Referral'];
+const OTHER = 'Other';
 
 export default function ApplyForm() {
   const toast = useToast();
@@ -19,6 +20,8 @@ export default function ApplyForm() {
   const [checks, setChecks] = useState([false, false, false]);
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState(false);
+  // "Other" is active when the source is anything outside the preset list (including empty while typing).
+  const [otherOn, setOtherOn] = useState(() => !!f.application_source && !SOURCES.includes(f.application_source));
   useEffect(() => { sessionStorage.removeItem('tcf_prefill'); }, []);
   useEffect(() => { if (cvs.data?.length && !f.cv_id) setF((s) => ({ ...s, cv_id: cvs.data[0].id })); }, [cvs.data]); // eslint-disable-line react-hooks/exhaustive-deps
   if (cvs.loading) return <Loading />;
@@ -31,10 +34,11 @@ export default function ApplyForm() {
     const e = {};
     if (!f.job_title.trim()) e.job_title = 'Add the job title';
     if (!f.company.trim()) e.company = 'Add the company';
+    if (otherOn && !(f.application_source || '').trim()) e.application_source = 'Tell us where you found it';
     setErr(e);
     if (Object.keys(e).length) { toast('Check the highlighted fields', 'AlertTriangle', '#FF9A72'); return; }
     setBusy(true);
-    try { await post('/applications', { ...f, ats_score: null }); navigate('applications'); toast('Application saved to your board'); }
+    try { await post('/applications', { ...f, application_source: (f.application_source || '').trim() || null, ats_score: null }); navigate('applications'); toast('Application saved to your board'); }
     catch (ex) { toastError(toast, ex); } finally { setBusy(false); }
   };
   const preview = { ...f, id: 'preview', job_title: f.job_title || 'Job title', company: f.company || 'Company', ats_score: score, status_history: [] };
@@ -54,8 +58,11 @@ export default function ApplyForm() {
             <Field id="l" label="Location" icon="MapPin" value={f.location} onChange={set('location')} ph="City · remote or hybrid" opt />
             <Field id="u" label="Job link" icon="Globe" value={f.job_link} onChange={set('job_link')} ph="Paste the ad link" opt /></div>
           <div className="lab" style={{ marginTop: 6 }}>Where did you find it?</div>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>{SOURCES.map((s) => (
-            <button key={s} className={'fchip' + (f.application_source === s ? ' on' : '')} onClick={() => set('application_source')(s)}>{f.application_source === s && <Icon n="Check" s={12} c="#fff" w={3} />}{s}</button>))}</div></div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>{SOURCES.map((s) => {
+            const on = !otherOn && f.application_source === s;
+            return <button key={s} className={'fchip' + (on ? ' on' : '')} onClick={() => { setOtherOn(false); set('application_source')(s); }}>{on && <Icon n="Check" s={12} c="#fff" w={3} />}{s}</button>; })}
+            <button className={'fchip' + (otherOn ? ' on' : '')} onClick={() => { if (!otherOn) { setOtherOn(true); set('application_source')(''); } }}>{otherOn && <Icon n="Check" s={12} c="#fff" w={3} />}{OTHER}</button></div>
+          {otherOn && <div style={{ marginTop: 12 }}><Field id="src" label="Where did you find it?" icon="Edit3" value={f.application_source || ''} onChange={set('application_source')} ph="e.g. Indeed, Facebook group, job fair" error={err.application_source} /></div>}</div>
         <div className="card"><div className="fsec"><span className="n">2</span><div><h2>CV and score</h2><div className="sub" style={{ fontSize: 12 }}>Pick the CV you sent. We attach its latest ATS score.</div></div></div>
           {cvs.data.length ? <div className="grid g2" style={{ gap: 12 }}>{cvs.data.map((c) => (
             <div key={c.id} role="button" tabIndex={0} className={'pick' + (c.id === f.cv_id ? ' on' : '')} style={{ cursor: 'pointer' }} onClick={() => set('cv_id')(c.id)}>

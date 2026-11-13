@@ -47,3 +47,15 @@ export const patch = (p, body) => api(p, { method: 'PATCH', body });
 export const put = (p, body) => api(p, { method: 'PUT', body });
 export const del = (p) => api(p, { method: 'DELETE' });
 export const upload = (p, file) => { const f = new FormData(); f.append('file', file); return api(p, { method: 'POST', form: f }); };
+
+// Fetch a file from the API and hand it to the browser as a download.
+export async function download(p, fallbackName = 'download') {
+  const res = await api(p, { raw: true });
+  const cd = res.headers.get('Content-Disposition') || '';
+  const m = cd.match(/filename\*=UTF-8''([^;]+)/i) || cd.match(/filename="?([^";]+)"?/i);
+  const name = m ? decodeURIComponent(m[1]) : fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

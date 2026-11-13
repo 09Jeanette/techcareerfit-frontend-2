@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../components/Icon';
 import { ErrorBox, Field, Loading, Modal, Ring, toastError, useApi, useToast } from '../components/ui';
-import { del, post, upload } from '../lib/api';
+import { del, download, post, upload } from '../lib/api';
 import { fmtDate } from '../lib/format';
 import { navigate } from '../lib/router';
 
@@ -50,6 +50,10 @@ export default function Analyse() {
     try { const c = await post('/cvs/text', { text: pasteText }); cvs.setData((d) => [c, ...d]); setCvId(c.id); setPaste(false); setPasteText(''); toast(`CV saved · ${c.skills.length} skills found`); }
     catch (ex) { toastError(toast, ex); }
   };
+  const downloadCv = async (c) => {
+    try { await download(`/cvs/${c.id}/download`, c.filename || 'cv'); }
+    catch (ex) { toastError(toast, ex); }
+  };
   const removeCv = async (id) => {
     try { await del('/cvs/' + id); cvs.setData((d) => d.filter((c) => c.id !== id)); if (cvId === id) setCvId(null); toast('CV removed', 'Trash2', '#FF9A72'); }
     catch (ex) { toastError(toast, ex); }
@@ -95,6 +99,7 @@ export default function Analyse() {
               <Ring pct={(c.best_score || 0) / 100} size={50} stroke={6} big={c.best_score != null ? String(c.best_score) : '–'} fs={14} col={c.id === cvId ? '#FF5B1F' : '#C9C1B9'} />
               <div style={{ flex: 1, minWidth: 0 }}><b style={{ fontSize: 13.5, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.filename}</b>
                 <div className="sub" style={{ fontSize: 12 }}>Added {fmtDate(c.created_at)} · {c.skills.length} skills</div></div>
+              <button className="iconmini" onClick={(e) => { e.stopPropagation(); downloadCv(c); }} aria-label="Download CV" title="Download CV"><Icon n="Download" s={14} /></button>
               <button className="iconmini" onClick={(e) => { e.stopPropagation(); removeCv(c.id); }} aria-label="Remove CV"><Icon n="Trash2" s={14} /></button>
             </div>))}</div></>}
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>
