@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CvButtons, DeleteCvModal } from '../components/CvActions';
 import Icon from '../components/Icon';
 import { ErrorBox, Field, Loading, Modal, Ring, toastError, useApi, useToast } from '../components/ui';
-import { api, del, post, saveResponse, upload } from '../lib/api';
-import { downloadBlob, fmtDate } from '../lib/format';
+import { post, upload } from '../lib/api';
+import { fmtDate } from '../lib/format';
 import { navigate } from '../lib/router';
 
 // Mirrors the backend alias list closely enough for a live preview of detected skills.
@@ -25,6 +26,7 @@ export default function Analyse() {
   const [paste, setPaste] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [delCv, setDelCv] = useState(null);
   const [progress, setProgress] = useState(0);
   const fileRef = useRef(null);
   const detected = useMemo(() => detect(title + ' ' + ad), [title, ad]);
@@ -50,21 +52,7 @@ export default function Analyse() {
     try { const c = await post('/cvs/text', { text: pasteText }); cvs.setData((d) => [c, ...d]); setCvId(c.id); setPaste(false); setPasteText(''); toast(`CV saved · ${c.skills.length} skills found`); }
     catch (ex) { toastError(toast, ex); }
   };
-  const downloadCv = async (c) => {
-    try {
-      // GET /cvs/{id} returns either the original file or the CV record as JSON.
-      const res = await api(`/cvs/${c.id}`, { raw: true });
-      if (!(res.headers.get('Content-Type') || '').includes('application/json')) { await saveResponse(res, c.filename || 'cv'); return; }
-      const data = await res.json();
-      const text = data.extracted_text ?? data.text;
-      if (!text) { toast('This CV has no saved text to download', 'AlertTriangle', '#FF9A72'); return; }
-      downloadBlob((c.filename || 'cv').replace(/\.[^.]+$/, '') + '.txt', text, 'text/plain;charset=utf-8');
-    } catch (ex) { toastError(toast, ex); }
-  };
-  const removeCv = async (id) => {
-    try { await del('/cvs/' + id); cvs.setData((d) => d.filter((c) => c.id !== id)); if (cvId === id) setCvId(null); toast('CV removed', 'Trash2', '#FF9A72'); }
-    catch (ex) { toastError(toast, ex); }
-  };
+  const onCvDeleted = (id) => { cvs.setData((d) => d.filter((c) => c.id !== id)); if (cvId === id) setCvId(null); };
   const run = async () => {
     if (ad.trim().length < 40) { setAdErr('Paste the full job description (at least a few sentences)'); return; }
     setStep(3); setProgress(0);
@@ -106,8 +94,7 @@ export default function Analyse() {
               <Ring pct={(c.best_score || 0) / 100} size={50} stroke={6} big={c.best_score != null ? String(c.best_score) : '–'} fs={14} col={c.id === cvId ? '#FF5B1F' : '#C9C1B9'} />
               <div style={{ flex: 1, minWidth: 0 }}><b style={{ fontSize: 13.5, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.filename}</b>
                 <div className="sub" style={{ fontSize: 12 }}>Added {fmtDate(c.created_at)} · {c.skills.length} skills</div></div>
-              <button className="iconmini" onClick={(e) => { e.stopPropagation(); downloadCv(c); }} aria-label="Download CV" title="Download CV"><Icon n="Download" s={14} /></button>
-              <button className="iconmini" onClick={(e) => { e.stopPropagation(); removeCv(c.id); }} aria-label="Remove CV"><Icon n="Trash2" s={14} /></button>
+              <CvButtons cv={c} onDelete={setDelCv} />
             </div>))}</div></>}
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>
           <button className="btn" disabled={!cv} onClick={() => setStep(2)}>Next: the job <Icon n="ArrowRight" s={16} /></button></div>
@@ -133,6 +120,7 @@ export default function Analyse() {
         <h2 style={{ fontSize: 20, marginTop: 18 }}>Reading your CV</h2><p className="sub">This usually takes a few seconds.</p>
         <div className="checks">{CHECKS.map((s, i) => <div key={s} className={'row ck-row' + (progress > (i + 1) / 4.3 ? ' done' : '')}><span className="ck"><Icon n="Check" s={12} c="#fff" w={3} /></span>{s}</div>)}</div>
       </div>)}
+    <DeleteCvModal cv={delCv} onClose={() => setDelCv(null)} onDeleted={onCvDeleted} />
     <Modal open={paste} onClose={() => setPaste(false)}>
       <h2 style={{ marginBottom: 6 }}>Paste your CV</h2><p className="sub" style={{ marginBottom: 14 }}>Plain text works best. We will save it as a CV you can reuse.</p>
       <div className="inp" style={{ alignItems: 'flex-start' }}><textarea rows={8} value={pasteText} onChange={(e) => setPasteText(e.target.value)} placeholder="Paste your CV text here" autoFocus /></div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../auth';
+import { CvButtons, DeleteCvModal } from '../components/CvActions';
 import Icon from '../components/Icon';
 import { ConfirmModal, Field, Modal, PasswordField, Toggle, toastError, useApi, useToast } from '../components/ui';
 import { del, get, patch, post } from '../lib/api';
@@ -14,6 +15,7 @@ export default function Profile() {
   const [pw, setPw] = useState(null);
   const [delOpen, setDelOpen] = useState(false);
   const [skill, setSkill] = useState('');
+  const [delCv, setDelCv] = useState(null);
 
   const save = async (body, msg) => { try { setUser(await patch('/me', body)); if (msg) toast(msg); return true; } catch (e) { toastError(toast, e); return false; } };
   const addSkill = (e) => { if (e.key === 'Enter' && skill.trim()) { e.preventDefault(); save({ skills: [...user.skills, skill.trim()] }, 'Skill added'); setSkill(''); } };
@@ -25,7 +27,6 @@ export default function Profile() {
     try { await post('/me/password', { current_password: pw.current, new_password: pw.next }); setPw(null); toast('Password updated'); }
     catch (e) { setPw({ ...pw, err: { current: e.message } }); }
   };
-  const removeCv = async (id) => { try { await del('/cvs/' + id); cvs.setData((d) => d.filter((c) => c.id !== id)); toast('CV removed', 'Trash2', '#FF9A72'); } catch (e) { toastError(toast, e); } };
   const s = user.settings || {};
 
   return (<>
@@ -44,7 +45,7 @@ export default function Profile() {
         <div className="list">{(cvs.data || []).map((c) => (
           <div key={c.id} className="it"><div className="logo" style={{ background: 'var(--peach)', color: 'var(--o)' }}><Icon n="FileText" s={18} /></div>
             <div className="t"><b>{c.filename}</b><span>{c.best_score != null ? c.best_score + '% best score' : 'Not analysed yet'}</span></div>
-            <button className="iconmini" onClick={() => removeCv(c.id)} aria-label="Remove CV"><Icon n="Trash2" s={14} /></button></div>))}
+            <CvButtons cv={c} onDelete={setDelCv} /></div>))}
           {cvs.data && !cvs.data.length && <p className="sub" style={{ fontSize: 12.5 }}>No CVs yet. <a className="link" onClick={() => navigate('analyse')}>Upload one</a></p>}</div></div>
       <div className="card"><div className="ch"><h2>Reminders</h2></div>
         <div className="list">{[['Bell', 'Follow-up emails', 'Two days before each follow-up', 'follow_up'], ['Calendar', 'Interview reminders', 'The day before', 'interview'], ['Zap', 'Weekly tips', 'One email on Mondays', 'tips']].map((r) => (
@@ -76,6 +77,7 @@ export default function Profile() {
       <PasswordField id="pw2" label="New password" value={pw.next} onChange={(v) => setPw({ ...pw, next: v, err: {} })} ph="At least 8 characters" error={pw.err.next} autoComplete="new-password" />
       <div className="row" style={{ gap: 10, marginTop: 6 }}><button className="btn" onClick={changePw}>Update password</button><button className="btn ghost" onClick={() => setPw(null)}>Cancel</button></div></>}
     </Modal>
+    <DeleteCvModal cv={delCv} onClose={() => setDelCv(null)} onDeleted={(id) => cvs.setData((d) => d.filter((c) => c.id !== id))} />
     <ConfirmModal open={delOpen} onClose={() => setDelOpen(false)} onConfirm={deleteAccount} title="Delete your account?" typeToConfirm="DELETE" confirmText="Delete account"
       body="Your CVs, reports, applications and journal entries will be removed permanently. This cannot be undone." />
   </>);

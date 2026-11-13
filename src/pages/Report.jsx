@@ -23,7 +23,8 @@ export default function Report({ param }) {
       <h2>No reports yet</h2><p className="sub" style={{ margin: '6px 0 16px' }}>Analyse your CV against a job ad to get your first report.</p>
       <button className="btn" onClick={() => navigate('analyse')}><Icon n="Zap" s={16} />Analyse a CV</button></div>);
   const r = list.find((x) => x.id === param) || list[list.length - 1];
-  const cvName = cvs.data?.find((c) => c.id === r.cv_id)?.filename || 'CV';
+  // A report keeps its score and evidence after its CV is deleted (cv_id cleared or pointing at a removed CV).
+  const cvName = !r.cv_id ? 'CV deleted' : cvs.data ? (cvs.data.find((c) => c.id === r.cv_id)?.filename || 'CV deleted') : 'CV';
   const [label, color] = matchLabel(r.score);
   const gain = r.missing_skills.length ? Math.min(98, r.score + 13) : r.score;
   const d = r.details || {};
