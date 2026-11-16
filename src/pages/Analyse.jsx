@@ -12,7 +12,6 @@ const PREVIEW_SKILLS = ['python', 'fastapi', 'django', 'sql', 'react', 'javascri
   'scikit-learn', 'nlp', 'computer vision', 'deep learning', 'machine learning', 'llms', 'langchain', 'rag', 'mlops', 'spark', 'airflow',
   'statistics', 'cloud', 'c++', 'agile'];
 const detect = (t) => PREVIEW_SKILLS.filter((k) => new RegExp('(^|[^a-z0-9])' + k.replace(/[.+#]/g, (m) => '\\' + m) + '([^a-z0-9]|$)', 'i').test(t));
-const SAMPLE_AD = 'We are looking for a junior developer to join our platform team. You will build APIs in Python and FastAPI, work with SQL databases, ship features in React and package services with Docker. Experience with Git and unit testing is a plus.';
 const CHECKS = ['Extracting text', 'Matching skills', 'Scoring experience', 'Building your report'];
 
 export default function Analyse() {
@@ -20,7 +19,8 @@ export default function Analyse() {
   const cvs = useApi('/cvs');
   const [step, setStep] = useState(1);
   const [cvId, setCvId] = useState(null);
-  const [title, setTitle] = useState(sessionStorage.getItem('tcf_role') || 'Junior Python Developer');
+  const [title, setTitle] = useState(sessionStorage.getItem('tcf_role') || '');
+  const [titleErr, setTitleErr] = useState('');
   const [ad, setAd] = useState(sessionStorage.getItem('tcf_ad') || '');
   const [adErr, setAdErr] = useState('');
   const [paste, setPaste] = useState(false);
@@ -54,14 +54,17 @@ export default function Analyse() {
   };
   const onCvDeleted = (id) => { cvs.setData((d) => d.filter((c) => c.id !== id)); if (cvId === id) setCvId(null); };
   const run = async () => {
+    const noTitle = !title.trim();
+    if (noTitle) setTitleErr('Enter the job title');
     if (ad.trim().length < 40) { setAdErr('Paste the full job description (at least a few sentences)'); return; }
+    if (noTitle) return;
     setStep(3); setProgress(0);
     const t0 = performance.now();
     let raf;
     const tick = (now) => { setProgress(Math.min(0.92, (now - t0) / 2600)); raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
     try {
-      const [rep] = await Promise.all([post('/ats/score', { cv_id: cvId, job_title: title || 'Untitled role', job_description: ad }), new Promise((r) => setTimeout(r, 2200))]);
+      const [rep] = await Promise.all([post('/ats/score', { cv_id: cvId, job_title: title.trim(), job_description: ad }), new Promise((r) => setTimeout(r, 2200))]);
       cancelAnimationFrame(raf); setProgress(1);
       setTimeout(() => { navigate('report/' + rep.id); toast(`Analysis complete: ${rep.score}%`); }, 400);
     } catch (ex) { cancelAnimationFrame(raf); setStep(2); toastError(toast, ex); }
@@ -105,8 +108,8 @@ export default function Analyse() {
           <div className="pick on"><Icon n="FileText" s={22} c="var(--o)" /><div style={{ flex: 1 }}><b>{cv.filename}</b><div className="sub" style={{ fontSize: 12 }}>{cv.skills.length} skills found in this CV</div></div></div>
           <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginTop: 14 }}>{cv.skills.map((s) => <span key={s} className="chip c-m">{s}</span>)}</div></div>
         <div className="card"><div className="ch"><h2>The job</h2><span className={'chip ' + (detected.length ? 'c-g' : 'c-m')}><Icon n="CheckCircle" s={13} />{detected.length} skills detected</span></div>
-          <Field id="jTitle" label="Job title" icon="Briefcase" value={title} onChange={setTitle} ph="e.g. Junior Python Developer" />
-          <div className="fld"><div className="lab"><label htmlFor="jAd">Job description</label><a className="link" onClick={() => { setAd(SAMPLE_AD); setAdErr(''); }}>Use a sample ad</a></div>
+          <Field id="jTitle" label="Job title" icon="Briefcase" value={title} onChange={(v) => { setTitle(v); setTitleErr(''); }} ph="e.g. Junior Python Developer" error={titleErr} />
+          <div className="fld"><div className="lab"><label htmlFor="jAd">Job description</label></div>
             <div className={'inp' + (adErr ? ' bad' : '')} style={{ alignItems: 'flex-start' }}><textarea id="jAd" rows={7} placeholder="Paste the full job ad here" value={ad} onChange={(e) => { setAd(e.target.value); setAdErr(''); }} /></div>
             {adErr && <div className="err">{adErr}</div>}</div>
           <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>{detected.map((k) => <span key={k} className="chip c-o">{k}</span>)}</div>

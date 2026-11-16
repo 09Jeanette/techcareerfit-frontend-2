@@ -26,13 +26,14 @@ test.beforeEach(async ({}, info) => {
 const token = () => page.evaluate(() => localStorage.getItem('tcf_token'));
 const toast = (re) => expect(page.getByText(re).first()).toBeVisible();
 const visible = (loc) => loc.filter({ visible: true }).first();
+const JOB_AD = 'We are looking for a junior developer to join our platform team. You will build APIs in Python and FastAPI, work with SQL databases, ship features in React and package services with Docker. Experience with Git and unit testing is a plus.';
 
 async function analyse(title) {
   await page.goto('/#analyse');
   await page.locator('.pick').first().click();
   await page.getByRole('button', { name: /Next: the job/ }).click();
   await page.locator('#jTitle').fill(title);
-  await page.getByText('Use a sample ad').click();
+  await page.locator('#jAd').fill(JOB_AD);
   await page.getByRole('button', { name: 'Analyse CV' }).click();
   await expect(page).toHaveURL(/#report\/.+/);
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
@@ -81,11 +82,12 @@ test('TC-04 FR-04/FR-05 ET-03 explainable ATS analysis, input validation, PDF re
   await page.goto('/#analyse');
   await page.locator('.pick').first().click();
   await page.getByRole('button', { name: /Next: the job/ }).click();
-  await page.locator('#jTitle').fill('Junior Python Developer');
   await page.locator('#jAd').fill('Too short');
   await page.getByRole('button', { name: 'Analyse CV' }).click();
+  await expect(page.getByText('Enter the job title')).toBeVisible();
   await expect(page.getByText(/Paste the full job description/)).toBeVisible();
-  await page.getByText('Use a sample ad').click();
+  await page.locator('#jTitle').fill('Junior Python Developer');
+  await page.locator('#jAd').fill(JOB_AD);
   await page.getByRole('button', { name: 'Analyse CV' }).click();
   await expect(page).toHaveURL(/#report\/.+/);
   await expect(page.getByText('Guidance only. This is not a hiring decision.')).toBeVisible();
