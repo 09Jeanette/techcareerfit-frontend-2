@@ -169,9 +169,10 @@ test('TC-10 FR-03/FR-06 deleting a CV keeps the reports scored with it', async (
   await page.goto('/#profile');
   await page.getByRole('button', { name: 'Remove CV', exact: true }).first().click();
   const modal = page.locator('.modal');
-  await expect(modal.getByText(/1 report used this CV/)).toBeVisible();
+  await expect(modal.getByText(/1 report( and \d+ applications?)? used this CV/)).toBeVisible();
   await modal.getByRole('button', { name: 'Delete CV' }).click();
-  await toast(/CV deleted/);
+  await expect(modal).toBeHidden();   // closes only after the DELETE succeeds (the modal text itself mentions "CV deleted")
+  await toast(/^CV deleted$/);
   await page.goto('/#report');
   await expect(page.getByRole('heading', { level: 1, name: 'QA Engineer' })).toBeVisible();
   await expect(page.getByText(/· CV deleted/)).toBeVisible();
